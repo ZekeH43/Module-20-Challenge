@@ -32,7 +32,7 @@ Use an ephemeral deployment in Remix's simulated local environment. Test with it
 - Compatible with old Solidity 0.5.x syntax; modern Solidity projects usually require updates.
 - Uses `transfer`, which may fail for smart-contract recipients with more expensive fallback logic under post-Istanbul gas rules.
 - Two individually authorized withdrawals are **not** dual authorization.
-- Reproducible automated compilation, fuzzing, unit tests, and security analysis are **future work**.
+- Automated Solidity compilation and a local-chain regression suite are included in `tests/joint_savings.test.cjs`. The suite checks authorization, input validation, event emission, account funding, and withdrawal outcomes. Fuzzing, formal verification, and an independent security audit remain future work.
 - Changes to contract permissions and behavior must be reviewed before any deployment.
 
-**No audit, compiler result, or deployment success is claimed by this document.**
+**The test suite is not a formal security audit or production deployment. Check the latest GitHub Actions result to confirm compilation and local EVM execution.**
