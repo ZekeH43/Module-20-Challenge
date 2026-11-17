@@ -1,73 +1,83 @@
 pragma solidity ^0.5.0;
 
-// Define a new contract named `JointSavings`
+/**
+ * @title JointSavings
+ * @notice Educational two-account savings demo, NOT an audited multisig wallet.
+ * Either registered account may withdraw its own funds. No two-party approval.
+ */
 contract JointSavings {
-
-    /*
-    Inside the new contract define the following variables:
-    - Two variables of type `address payable` named `accountOne` and `accountTwo`
-    - A variable of type `address public` named `lastToWithdraw`
-    - Two variables of type `uint public` named `lastWithdrawAmount` and `contractBalance`.
-    */
-    address payable accountOne;
-    address payable accountTwo;
+    address public owner;
+    address payable public accountOne;
+    address payable public accountTwo;
     address public lastToWithdraw;
     uint public lastWithdrawAmount;
     uint public contractBalance;
+    bool public accountsConfigured;
 
-    /*
-    Define a function named **withdraw** that will accept two arguments.
-    - A `uint` variable named `amount`
-    - A `payable address` named `recipient`
-    */
-    function withdraw(uint amount, address payable recipient) public {
+    event AccountsConfigured(address indexed firstAccount, address indexed secondAccount);
+    event Deposit(address indexed sender, uint amount, uint newBalance);
+    event Withdrawal(address indexed recipient, uint amount, uint newBalance);
 
-        /*
-        Define a `require` statement that checks if the `recipient` is equal to either `accountOne` or `accountTwo`. The `requiere` statement returns the text `"You don't own this account!"` if it does not.
-        */
-        require(recipient == accountOne || recipient == accountTwo, "You don't own this account!");
-
-        /*
-        Define a `require` statement that checks if the `balance` is sufficient to accomplish the withdraw operation. If there are insufficient funds, the text `Insufficient funds!` is returned.
-        */
-        require(contractBalance >= amount, "Insufficient funds!");
-
-        /*
-        Add and `if` statement to check if the `lastToWithdraw` is not equal to (`!=`) to `recipient` If `lastToWithdraw` is not equal, then set it to the current value of `recipient`.
-        */
-        if (lastToWithdraw != recipient) { lastToWithdraw = recipient;}
-
-        // Call the `transfer` function of the `recipient` and pass it the `amount` to transfer as an argument.
-        recipient.transfer(amount);
-
-        // Set  `lastWithdrawAmount` equal to `amount`
-        lastWithdrawAmount = amount;
-
-        // Call the `contractBalance` variable and set it equal to the balance of the contract by using `address(this).balance` to reflect the new balance of the contract.
-        contractBalance = address(this).balance;
+    constructor() public {
+        owner = msg.sender;
     }
 
-    // Define a `public payable` function named `deposit`.
-    function deposit() public payable {
-
-        /*
-        Call the `contractBalance` variable and set it equal to the balance of the contract by using `address(this).balance`.
-        */
-        contractBalance = address(this).balance;
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only the deployer can configure accounts");
+        _;
     }
 
-    /*
-    Define a `public` function named `setAccounts` that receive two `address payable` arguments named `account1` and `account2`.
-    */
-    function setAccounts(address payable account1, address payable account2) public{
+    /**
+     * @notice Configure the approved account holders once.
+     * An unrestricted setAccounts() could let anyone replace the holders and
+     * drain the contract; this function is intentionally owner-only.
+     */
+    function setAccounts(address payable account1, address payable account2)
+        public
+        onlyOwner
+    {
+        require(!accountsConfigured, "Accounts have already been configured");
+        require(account1 != address(0) && account2 != address(0), "Zero account");
+        require(account1 != account2, "Accounts must be different");
 
-        // Set the values of `accountOne` and `accountTwo` to `account1` and `account2` respectively.
         accountOne = account1;
         accountTwo = account2;
+        accountsConfigured = true;
+        emit AccountsConfigured(account1, account2);
     }
 
-    /*
-    Finally, add the **default fallback function** so that your contract can store Ether sent from outside the deposit function.
-    */
-    function() external payable {}
+    /**
+     * @notice A registered account can withdraw only to its own address.
+     * This is *not* a joint-approval or shared-spending-limit implementation.
+     */
+    function withdraw(uint amount, address payable recipient) public {
+        require(accountsConfigured, "Configure accounts first");
+        require(
+            msg.sender == accountOne || msg.sender == accountTwo,
+            "Only a registered account may withdraw"
+        );
+        require(recipient == msg.sender, "Withdraw only to your own account");
+        require(amount > 0, "Amount must be positive");
+        require(address(this).balance >= amount, "Insufficient funds");
+
+        // Record state before the external transfer.
+        lastToWithdraw = recipient;
+        lastWithdrawAmount = amount;
+        recipient.transfer(amount);
+
+        contractBalance = address(this).balance;
+        emit Withdrawal(recipient, amount, contractBalance);
+    }
+
+    function deposit() public payable {
+        require(msg.value > 0, "Deposit amount must be positive");
+        contractBalance = address(this).balance;
+        emit Deposit(msg.sender, msg.value, contractBalance);
+    }
+
+    // Historical Solidity 0.5 fallback syntax: accepts direct Ether transfers.
+    function() external payable {
+        contractBalance = address(this).balance;
+        emit Deposit(msg.sender, msg.value, contractBalance);
+    }
 }

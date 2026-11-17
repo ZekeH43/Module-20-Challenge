@@ -1,0 +1,19 @@
+name: Solidity compile and local-chain regression
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install historical compiler and test dependencies
+        run: npm install --no-package-lock
+      - name: Compile Solidity 0.5.17 and test on a disposable Ganache network
+        run: npm test

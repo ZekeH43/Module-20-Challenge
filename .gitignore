@@ -1,0 +1,10 @@
+# Remix and local developer artifacts
+.DS_Store
+**/.DS_Store
+node_modules/
+.env
+.env.*
+!.env.example
+coverage/
+artifacts/
+cache/
