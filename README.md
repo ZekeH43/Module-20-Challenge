@@ -19,7 +19,18 @@ An educational Ethereum smart-contract assignment for storing Ether with two con
 5. Call `deposit` with a nonzero payable amount (or send Ether directly to the fallback).
 6. Switch to one registered account, call `withdraw(amount, that_account)`, and verify the balance and event logs.
 
-See the manual [verification checklist](docs/SECURITY_AND_TESTING.md) before treating the exercise as understood. There is no automated Solidity CI suite in this repository; **compilation and runtime tests have not been performed as part of this PR**.
+See the manual [verification checklist](docs/SECURITY_AND_TESTING.md). Automated verification is also provided in `tests/joint_savings.test.cjs` and `.github/workflows/solidity-tests.yml`: it compiles Solidity 0.5.17 and exercises the deployment on an isolated Ganache EVM. CI status should be checked before merging; a passing test suite is not a security audit.
+
+## Run the automated tests
+
+Install Node.js 22 and then, from the repository root:
+
+```bash
+npm install --no-package-lock
+npm test
+```
+
+The dev dependencies are explicitly versioned at the top level in `package.json`. There is no committed dependency lockfile, so transitive versions are not fully reproducible; use disposable tooling for this legacy demonstration. The tests compile the local Solidity source with `solc@0.5.17` and use an ephemeral Ganache chain; no real wallet, credentials, or network is required.
 
 ## What changed and why
 
